@@ -2,15 +2,29 @@
     "manifest_version": 3,
     "name": "LeetCode Tracker",
     "version": "1.0",
-    "permissions": ["scripting", "activeTab", "storage"],
-    "background": {"service_worker": "background.js"},
-    "host_permissions": ["*://leetcode.com/*"],
-    "action": { "default_popup": "popup.html" },
+    "permissions": [
+        "scripting",
+        "activeTab",
+        "storage"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "host_permissions": [
+        "*://leetcode.com/*"
+    ],
+    "action": {
+        "default_popup": "popup.html"
+    },
     "content_scripts": [
-      {
-        "matches": ["*://leetcode.com/*"],
-        "js": ["content.js"],
-        "run_at": "document_end"
-      }
+        {
+            "matches": [
+                "*://leetcode.com/*"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "run_at": "document_end"
+        }
     ]
-  }
+}
