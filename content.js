@@ -1,41 +1,34 @@
-const buttonsToTrack = ["Run", "Submit", "Debug"];
-let timerRunning = false;
-
-function setupWebSocket() {
-  chrome.runtime.sendMessage({ type: "sendData", data: { event: "Extension Loaded" } });
-}
-
-function trackButtons() {
-  buttonsToTrack.forEach(buttonText => {
-    document.querySelectorAll("button").forEach(button => {
-      if (button.innerText.includes(buttonText)) {
-        button.addEventListener("click", () => {
-          if (timerRunning) {
-            chrome.runtime.sendMessage({
-              type: "sendData",
-              data: { event: "Button Clicked", button: buttonText, time: new Date().toISOString() }
-            });
-          }
-        });
+const buttonSelectors = [
+    'button[data-cy="submit-code"]',
+    'button[data-cy="run-code"]',
+    'button[data-cy="debug-code"]'
+  ];
+  
+  function sendEvent(eventType) {
+    chrome.runtime.sendMessage({
+      type: "log_event",
+      data: {
+        event: eventType,
+        timestamp: new Date().toISOString(),
+        url: window.location.href
       }
     });
-  });
-}
-
-function startObserver() {
-  const observer = new MutationObserver(trackButtons);
-  observer.observe(document.body, { childList: true, subtree: true });
-}
-
-chrome.storage.sync.get(["timerRunning"], data => {
-  timerRunning = data.timerRunning || false;
-});
-
-chrome.storage.onChanged.addListener(changes => {
-  if (changes.timerRunning) {
-    timerRunning = changes.timerRunning.newValue;
   }
-});
-
-setupWebSocket();
-startObserver();
+  
+  function observeButtons() {
+    const observer = new MutationObserver(() => {
+      buttonSelectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(button => {
+          if (!button.dataset.tracked) {
+            button.dataset.tracked = "true";
+            button.addEventListener("click", () => sendEvent(selector));
+          }
+        });
+      });
+    });
+  
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+  
+  observeButtons();
+  
