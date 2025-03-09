@@ -288,6 +288,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           name: message.name,
           message: message.message,
           rollNumber: message.rollNumber,
+          url: message.url,
           category: message.category || 'chat_message',
           leetcodeUsername: message.leetcodeUsername
         }));

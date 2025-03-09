@@ -16,6 +16,11 @@
     "action": {
         "default_popup": "popup.html"
     },
+    "icons": {
+        "16": "images/leet-logo.png",
+        "48": "images/leet-logo.png",
+        "128": "images/leet-logo.png"
+    },
     "content_scripts": [
         {
             "matches": [
