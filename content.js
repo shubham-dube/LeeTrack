@@ -1,3 +1,9 @@
+/**
+ * LeetCode Observer Content Script
+ * Tracks user interactions on LeetCode pages and sends events to the background script
+ */
+
+// Button selectors to track on LeetCode pages
 const buttonSelectors = {
   // Core LeetCode functionality buttons
   coreActions: [
@@ -13,34 +19,48 @@ const buttonSelectors = {
 
 // User state tracking
 let userName = null;
+let rollNumber = null;
 let leetcodeUsername = null;
-let roomCode = null;
+let contestId = null;
 let userState = {
   isOnLeetcodePage: false,
   tabActive: true,
-  lastActive: Date.now()
+  lastActive: Date.now(),
+  activeContest: null
 };
 
+// Contest notification element
+let contestNotification = null;
+
+// Track URL changes
 let currentUrl = window.location.href;
 
+/**
+ * Check if the URL has changed and send appropriate events
+ */
 function checkUrlChange() {
   if (window.location.href !== currentUrl) {
     console.log('URL changed to:', window.location.href);
     currentUrl = window.location.href;
-    if(currentUrl.includes('solutions')){
-      sendEvent('Solution Page Visited', 'solutions_visited')
-    }
-    else if(currentUrl.includes("editorial")){
-      sendEvent('Editorial Page Visited', 'editorial_visited')
-    }
-    else if(currentUrl.includes("submissions")){
-      sendEvent('Submissions Page Visited', 'submissions_visited')
-    }
-    else if(currentUrl.includes("description")){
-      sendEvent('Description Page Visited', 'description_visited')
-    }
-    else {
-      sendEvent('Page Url Changed', 'page_url_changed')
+    
+    try {
+      if(currentUrl.includes('solutions')) {
+        sendEvent('Solution Page Visited', 'solutions_visited');
+      }
+      else if(currentUrl.includes("editorial")) {
+        sendEvent('Editorial Page Visited', 'editorial_visited');
+      }
+      else if(currentUrl.includes("submissions")) {
+        sendEvent('Submissions Page Visited', 'submissions_visited');
+      }
+      else if(currentUrl.includes("description")) {
+        sendEvent('Description Page Visited', 'description_visited');
+      }
+      else {
+        sendEvent('Page Url Changed', 'page_url_changed');
+      }
+    } catch (error) {
+      console.error('Error handling URL change:', error);
     }
   }
 }
@@ -54,23 +74,81 @@ window.addEventListener('popstate', () => {
 // Regularly check the URL
 setInterval(checkUrlChange, 1000);
 
-// Get extension configuration data from storage
+/**
+ * Get extension configuration data from storage
+ * @returns {Promise<Object>} Promise resolving to stored data
+ */
 function getExtensionData() {
   return new Promise((resolve) => {
-    chrome.storage.local.get(['roomCode', 'name', 'rollNumber'], (data) => {
+    chrome.storage.local.get(['roomCode', 'name', 'rollNumber', 'activeContest'], (data) => {
       if (data.roomCode && data.name) {
-        roomCode = data.roomCode;
+        contestId = data.roomCode;
         userName = data.name;
-        console.log(`Extension data loaded: Room=${roomCode}, User=${userName}`);
+        rollNumber = data.rollNumber;
+        
+        if (data.activeContest) {
+          userState.activeContest = data.activeContest;
+          updateContestNotification();
+        }
+        
+        console.log(`Extension data loaded: Contest=${contestId}, User=${userName}, Roll=${rollNumber}`);
       } else {
-        console.log('No room or user data found in storage');
+        console.log('No contest or user data found in storage');
       }
       resolve(data);
     });
   });
 }
 
-// Extract LeetCode username from page source
+/**
+ * Creates or updates the contest notification element on the LeetCode page
+ */
+function updateContestNotification() {
+  try {
+    // Remove existing notification if it exists
+    if (contestNotification) {
+      contestNotification.remove();
+    }
+    
+    // Only create notification if there's an active contest
+    if (!userState.activeContest) return;
+    
+    // Create notification element
+    contestNotification = document.createElement('div');
+    contestNotification.className = 'fixed bottom-2 right-20 z-50 bg-white border border-green-400 text-black px-4 py-2 rounded-md shadow-md';
+    contestNotification.innerHTML = `
+      <div class="flex items-center">
+        <span>You are in ${userState.activeContest.name || 'Unknown'}</span>
+      </div>
+    `;
+    
+    // Add to page
+    document.body.appendChild(contestNotification);
+    
+    // Make it disappear after 10 seconds
+    setTimeout(() => {
+      if (contestNotification) {
+        contestNotification.style.opacity = '0';
+        contestNotification.style.transition = 'opacity 1s';
+        
+        // Remove after transition
+        setTimeout(() => {
+          if (contestNotification) {
+            contestNotification.remove();
+            contestNotification = null;
+          }
+        }, 1000);
+      }
+    }, 10000);
+  } catch (error) {
+    console.error('Error updating contest notification:', error);
+  }
+}
+
+/**
+ * Extract LeetCode username from page source
+ * @returns {string|null} - Extracted username or null if not found
+ */
 function extractLeetCodeUsername() {
   try {
     const htmlContent = document.documentElement.innerHTML;
@@ -87,13 +165,20 @@ function extractLeetCodeUsername() {
   return null;
 }
 
-// Check if user is on LeetCode
+/**
+ * Check if user is on LeetCode
+ * @returns {boolean} - Whether user is on LeetCode
+ */
 function checkLeetCodePage() {
   userState.isOnLeetcodePage = window.location.href.includes('leetcode.com');
   return userState.isOnLeetcodePage;
 }
 
-// Send event to background script
+/**
+ * Send event to background script
+ * @param {string} eventType - Type of event
+ * @param {string} category - Event category
+ */
 function sendEvent(eventType, category = 'user_action') {
   try {
     if (!chrome.runtime) {
@@ -101,102 +186,158 @@ function sendEvent(eventType, category = 'user_action') {
       return;
     }
 
-    // Get latest room code in case it changed
-    getExtensionData().then(() => {
+    // Get latest contest data in case it changed
+    getExtensionData().then((data) => {
+      const currentRollNumber = data.rollNumber || "Unknown Roll";
+      
+      // Make sure we have the latest LeetCode username
+      if (!leetcodeUsername) {
+        extractLeetCodeUsername();
+      }
+      
       chrome.runtime.sendMessage({
-        type: "room_message",
+        type: "contest_message",
         name: userName || "Unknown User",
-        roomCode: roomCode || "Unknown Room",
+        roomCode: contestId || "Unknown Contest",
+        rollNumber: currentRollNumber,
         message: eventType,
         category: category,
-        leetcodeUsername: leetcodeUsername,
+        leetcodeUsername: leetcodeUsername || "Unknown LeetCode User",
         url: window.location.href,
         timestamp: Date.now()
       });
-      console.log(`Event sent: ${category} - ${eventType}`);
+      console.log(`Event sent: ${category} - ${eventType} (Roll: ${currentRollNumber}, LeetCode: ${leetcodeUsername || "Unknown"})`);
     });
   } catch (error) {
     console.error('Error sending event:', error);
   }
 }
 
-// Add event listeners to tracked elements
+/**
+ * Add event listeners to tracked elements
+ */
 function setupButtonTracking() {
-  // Process all button categories
-  Object.keys(buttonSelectors).forEach(category => {
-    buttonSelectors[category].forEach(item => {
-      const elements = document.querySelectorAll(item.selector);
-      if (elements.length > 0) {
-        elements.forEach(element => {
-          // Skip already tracked elements
-          if (!element.dataset.tracked) {
-            element.dataset.tracked = "true";
-            element.addEventListener('click', () => {
-              sendEvent(`Clicked: ${element.textContent || element.description}`, 'button_click');
-            });
-            console.log(`Tracking added: ${item.description || item.selector}`);
-          }
-        });
-      }
+  try {
+    // Process all button categories
+    Object.keys(buttonSelectors).forEach(category => {
+      buttonSelectors[category].forEach(item => {
+        const elements = document.querySelectorAll(item.selector);
+        if (elements.length > 0) {
+          elements.forEach(element => {
+            // Skip already tracked elements
+            if (!element.dataset.tracked) {
+              element.dataset.tracked = "true";
+              element.addEventListener('click', () => {
+                sendEvent(`Clicked: ${element.textContent || item.description}`, 'button_click');
+              });
+              console.log(`Tracking added: ${item.description || item.selector}`);
+            }
+          });
+        }
+      });
     });
-  });
-}
-
-// Initialize tracking system
-async function initializeTracking() {
-  await getExtensionData();
-  checkLeetCodePage();
-
-  if (userState.isOnLeetcodePage) {
-    extractLeetCodeUsername();
-    sendEvent('User opened LeetCode page', 'page_visit');
-    // Set up presence monitoring
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        userState.tabActive = false;
-        sendEvent('User left LeetCode tab (switched tab or minimized window)', 'presence');
-      } else {
-        userState.tabActive = true;
-        userState.lastActive = Date.now();
-        sendEvent('User returned to LeetCode tab', 'presence');
-      }
-    });
-
-    // Track page closure
-    window.addEventListener('beforeunload', () => {
-      sendEvent('User closed LeetCode page', 'presence');
-    });
-
-    // Set up button tracking
-    setupButtonTracking();
-
-    // Re-check for new elements periodically
-    setInterval(setupButtonTracking, 5000);
+  } catch (error) {
+    console.error('Error setting up button tracking:', error);
   }
 }
+
+/**
+ * Initialize tracking system
+ */
+async function initializeTracking() {
+  try {
+    await getExtensionData();
+    checkLeetCodePage();
+
+    if (userState.isOnLeetcodePage) {
+      extractLeetCodeUsername();
+      sendEvent('User opened LeetCode page', 'page_visit');
+      
+      // Display contest notification if in a contest
+      updateContestNotification();
+      
+      // Set up presence monitoring
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          userState.tabActive = false;
+          sendEvent('User left LeetCode tab (switched tab or minimized window)', 'presence');
+        } else {
+          userState.tabActive = true;
+          userState.lastActive = Date.now();
+          sendEvent('User returned to LeetCode tab', 'presence');
+        }
+      });
+
+      // Track page closure
+      window.addEventListener('beforeunload', () => {
+        sendEvent('User closed LeetCode page', 'presence');
+      });
+
+      // Set up button tracking
+      setupButtonTracking();
+
+      // Re-check for new elements periodically
+      setInterval(setupButtonTracking, 5000);
+    }
+  } catch (error) {
+    console.error('Error initializing tracking:', error);
+  }
+}
+
+/**
+ * Add new button selector to track
+ * @param {string} category - Category name
+ * @param {string} selector - CSS selector
+ * @param {string} description - Button description
+ */
+function addButtonSelector(category, selector, description) {
+  try {
+    if (!buttonSelectors[category]) {
+      buttonSelectors[category] = [];
+    }
+    buttonSelectors[category].push({ selector, description });
+    setupButtonTracking();
+  } catch (error) {
+    console.error('Error adding button selector:', error);
+  } 
+}
+
+/**
+ * Check if the current question is already solved
+ */
+const checkSolvedQuestionPresence = () => {
+  try {
+    const element = document.querySelector('div[class="text-body flex flex-none items-center gap-1 py-1.5 text-text-secondary dark:text-text-secondary"]');
+    if (element) {
+      console.log('Question is Solved!');
+      sendEvent('Question Already Solved', 'solved_question');
+      clearInterval(intervalId);
+    }
+  } catch (error) {
+    console.error('Error checking solved question:', error);
+  }
+};
+
+// Listen for messages from background script
+chrome.runtime.onMessage.addListener((message) => {
+  try {
+    if (message.type === 'contest_started' || message.type === 'room_joined') {
+      // Update contest info
+      if (message.contest) {
+        userState.activeContest = message.contest;
+        updateContestNotification();
+      }
+    }
+  } catch (error) {
+    console.error('Error handling message in content script:', error);
+  }
+});
+
+// Periodically refresh extension data and check for solved questions
+setInterval(getExtensionData, 30000);
+const intervalId = setInterval(checkSolvedQuestionPresence, 10000);
 
 // Start tracking when DOM is fully loaded
 window.addEventListener('load', () => {
   setTimeout(initializeTracking, 1000);
 });
-
-
-function addButtonSelector(category, selector, description) {
-  if (!buttonSelectors[category]) {
-    buttonSelectors[category] = [];
-  }
-  buttonSelectors[category].push({ selector, description });
-  setupButtonTracking(); 
-}
-
-const checkSolvedQuestionPresence = () => {
-  const element = document.querySelector('div[class="text-body flex flex-none items-center gap-1 py-1.5 text-text-secondary dark:text-text-secondary"]'); // Use dot for class selectors
-  if (element) {
-    console.log('Question is Solved !!!');
-    sendEvent('Question Already Solved', 'solved_question');
-    clearInterval(intervalId);
-  }
-};
-
-setInterval(getExtensionData, 30000);
-const intervalId = setInterval(checkSolvedQuestionPresence, 1000);

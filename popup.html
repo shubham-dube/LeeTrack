@@ -23,10 +23,10 @@
             <div id="connectionStatus" class="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">Disconnected</div>
         </div>
 
-        <!-- Timer Section -->
+        <!-- Contest Status Section -->
         <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-            <div id="timerDisplay" class="text-3xl font-bold text-center text-gray-800">00:00:00</div>
-            <div id="contestStatus" class="mt-2 text-sm text-center text-gray-600">No active contest</div>
+            <h4 class="font-semibold text-gray-700 mb-2">Active Contest</h4>
+            <div id="contestStatus" class="text-xl font-bold text-center text-gray-800 p-2 bg-blue-50 rounded-md">No active contest</div>
         </div>
 
         <!-- Running Contests Section -->
@@ -37,23 +37,30 @@
             </div>
         </div>
 
-        <!-- Join Room Form -->
+        <!-- Join Contest Form -->
         <div id="joinForm" class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 space-y-3">
-            <h4 class="font-semibold text-gray-700">Join Room</h4>
-            <input type="text" id="roomCode" placeholder="Room Code" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <h4 class="font-semibold text-gray-700">Join Contest</h4>
+            <input type="text" id="roomCode" placeholder="Contest ID" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             <input type="text" id="name" placeholder="Your Name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             <input type="text" id="rollNumber" placeholder="Roll Number" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             <button id="joinRoom" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors">
-                Join Room
+                Join Contest
             </button>
         </div>
 
-        <!-- Room Status -->
-        <div id="roomStatus" class="text-sm text-center text-gray-600">Not in a room</div>
+        <!-- Contest Status -->
+        <div id="roomStatus" class="text-sm text-center text-gray-600">Not in a contest</div>
 
         <!-- Chat Section (initially hidden) -->
         <div id="chatSection" class="hidden bg-white rounded-lg p-4 shadow-sm border border-gray-200 space-y-3">
-            <h4 class="font-semibold text-gray-700">Room Chat</h4>
+            <div class="flex justify-between items-center">
+                <h4 class="font-semibold text-gray-700">Contest Chat</h4>
+                <button id="refreshChat" class="text-sm text-blue-600 hover:text-blue-800">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </button>
+            </div>
             <div id="chatMessages" class="chat-container space-y-2 mb-3">
                 <!-- Messages will be added here dynamically -->
             </div>
