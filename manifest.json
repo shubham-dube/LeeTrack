@@ -8,13 +8,8 @@
         "storage"
     ],
     "background": {
-        "service_worker": "background.js",
-        "type": "module"
+        "service_worker": "background.js"
     },
-    "web_accessible_resources": [{
-        "resources": ["https://cdn.socket.io/4.0.0/socket.io.min.js"],
-        "matches": ["<all_urls>"]
-    }],
     "host_permissions": [
         "*://leetcode.com/*"
     ],

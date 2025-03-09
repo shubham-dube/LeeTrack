@@ -6,6 +6,13 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
         body { width: 360px; }
+        .chat-container {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .chat-message {
+            word-break: break-word;
+        }
     </style>
 </head>
 <body class="bg-gray-50 p-4">
@@ -43,6 +50,21 @@
 
         <!-- Room Status -->
         <div id="roomStatus" class="text-sm text-center text-gray-600">Not in a room</div>
+
+        <!-- Chat Section (initially hidden) -->
+        <div id="chatSection" class="hidden bg-white rounded-lg p-4 shadow-sm border border-gray-200 space-y-3">
+            <h4 class="font-semibold text-gray-700">Room Chat</h4>
+            <div id="chatMessages" class="chat-container space-y-2 mb-3">
+                <!-- Messages will be added here dynamically -->
+            </div>
+            <div class="flex space-x-2">
+                <input type="text" id="messageInput" placeholder="Type a message..." 
+                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button id="sendMessage" class="px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                    Send
+                </button>
+            </div>
+        </div>
     </div>
 </body>
 </html>
