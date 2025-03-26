@@ -29,7 +29,6 @@ function connectToServer() {
         connected: true 
       });
       
-      // Resubscribe to room if we were in one
       if (currentRoom) {
         chrome.storage.local.get(['name', 'rollNumber'], (data) => {
           if (data.name && data.rollNumber) {
