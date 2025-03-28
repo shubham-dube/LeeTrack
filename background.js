@@ -7,7 +7,7 @@
 let ws = null;
 let isConnected = false;
 let connectionAttempts = 0;
-let currentRoom = null;
+let currentRoom = 563811;
 let lastMessages = []; // Store the last 5 messages
 const MAX_STORED_MESSAGES = 5;
 
@@ -16,7 +16,7 @@ const MAX_STORED_MESSAGES = 5;
  */
 function connectToServer() {
   try {
-    ws = new WebSocket('ws://localhost:3001');
+    ws = new WebSocket('ws://localhost:4000');
     
     ws.onopen = () => {
       console.log('WebSocket connection established');
@@ -256,6 +256,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           type: 'join_room',
           roomCode: message.roomCode,
           name: message.name,
+          status: 'info',
           rollNumber: message.rollNumber
         }));
         
@@ -288,6 +289,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           message: message.message,
           rollNumber: message.rollNumber,
           url: message.url,
+          status: message.status,
           category: message.category || 'chat_message',
           leetcodeUsername: message.leetcodeUsername
         }));
@@ -314,6 +316,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           if (isConnected) {
             ws.send(JSON.stringify({
               type: 'leave_room',
+              status: 'warning',
               roomCode: message.roomCode
             }));
           }
@@ -337,44 +340,37 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // Start connection when extension is loaded
 connectToServer();
 
-// Fetch running contests periodically
+/**
+ * Fetch running contests periodically
+ */
 function fetchRunningContests() {
   try {
-    fetch('http://localhost:3002/api/running_contests')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`Error fetching contests: ${response.status}`);
+    chrome.storage.local.get(['jwtToken'], (result) => {
+      const token = result.jwtToken;
+
+      if (!token) {
+        console.log('No JWT token found, skipping fetchRunningContests');
+        return;
+      }
+
+      fetch('http://localhost:4000/api/contest/active', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
-        return response.json();
       })
+      .then(response => response.json())
       .then(contests => {
-        chrome.runtime.sendMessage({
-          type: "running_contests",
-          contests: contests
-        }).catch(error => {
-          // Suppressing errors when no popups are open to receive the message
-          if (!error.message.includes("Could not establish connection")) {
-            console.error('Error sending contests to popup:', error);
-          }
-        });
+        chrome.runtime.sendMessage({ type: "running_contests", contests: contests.activeContests })
+        .catch(error => console.error('Error sending contests to popup:', error));
       })
-      .catch(error => {
-        console.error('Error fetching running contests:', error);
-      });
+      .catch(error => console.error('Error fetching contests:', error));
+    });
   } catch (error) {
     console.error('Error in fetchRunningContests:', error);
   }
 }
 
-// Fetch running contests every 10 seconds
-setInterval(fetchRunningContests, 10000);
-
-// Add event listener for browser startup
-chrome.runtime.onStartup.addListener(() => {
-  connectToServer();
-});
-
-// Add event listener for extension install or update
-chrome.runtime.onInstalled.addListener(() => {
-  connectToServer();
-});
+// Periodically fetch contests every 5 minutes
+setInterval(fetchRunningContests, 300000);

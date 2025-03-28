@@ -17,6 +17,151 @@ document.addEventListener("DOMContentLoaded", () => {
     let activeContest = null;
     let currentRoom = null;
     let userName = null;
+
+
+    // const joinRoomBtn = document.getElementById("joinRoomBtn");
+    const roomIdInput = document.getElementById("roomIdInput");
+
+    // joinRoomBtn.addEventListener("click", async () => {
+    //     const roomId = roomIdInput.value.trim();
+
+    //     if (!roomId) {
+    //         alert("Please enter a Room ID.");
+    //         return;
+    //     }
+
+    //     try {
+    //         const token = await getToken();
+    //         if (!token) {
+    //             console.error("No token found in chrome storage");
+    //             return;
+    //         }
+    //         const response = await fetch("http://localhost:4000/api/contest/join", {
+    //             method: "POST",
+    //             headers: {
+    //                 "Content-Type": "application/json",
+    //                 "Authorization": `Bearer ${token}`
+    //             },
+    //             body: JSON.stringify({ roomCode: roomId })
+    //         });
+
+    //         if (!response.ok) {
+    //             const errorData = await response.json();
+    //             alert(`Failed to join room: ${errorData.message}`);
+    //             return;
+    //         }
+
+    //         const data = await response.json();
+
+    //         chrome.storage.local.set({ roomCode: roomId }, () => {
+    //           console.log("roomCode saved:", roomId);
+    //         });
+
+    //         chrome.storage.local.set({ activeContest: data.contest.name }, () => {
+    //           console.log("roomCode saved:", roomId);
+    //         });
+            
+    //         alert("Joined room successfully!");
+    //         roomIdInput.value = "";  // Clear input field
+
+    //     } catch (error) {
+    //         console.error("Error joining room:", error);
+    //         alert("An error occurred. Please try again.");
+    //     }
+    // });
+      // Function to show main page
+      const loginForm = document.getElementById("loginForm");
+      const contestSection = document.getElementById("contestSection");
+      const runningContests = document.getElementById("runningContests");
+      const joinForm = document.getElementById("joinForm");
+      const logoutBtn = document.getElementById("logoutBtn");
+  
+      const loginBtn = document.getElementById("loginBtn");
+      const emailInput = document.getElementById("email");
+      const fullNameInput = document.getElementById("fullName");
+  
+      // Function to show main page
+      function showMainPage() {
+          loginForm.classList.add("hidden");
+          contestSection.classList.remove("hidden");
+          runningContests.classList.remove("hidden");
+          // joinForm.classList.remove("hidden");
+          chatSection.classList.remove("hidden");
+          logoutBtn.classList.remove("hidden"); // Ensure logout button is visible
+      }
+  
+      // Function to show login form
+      function showLoginPage() {
+          loginForm.classList.remove("hidden");
+          contestSection.classList.add("hidden");
+          runningContests.classList.add("hidden");
+          // joinForm.classList.add("hidden");
+          chatSection.classList.add("hidden");
+          logoutBtn.classList.add("hidden"); // Ensure logout button is hidden
+      }
+  
+      // ✅ Check if user is already logged in
+      chrome.storage.local.get(['jwtToken'], (result) => {
+          if (result.jwtToken) {
+              console.log("User already logged in");
+              showMainPage();
+          } else {
+              console.log("No JWT token found, showing login page");
+              showLoginPage();
+          }
+      });
+  
+      // ✅ Handle login
+      loginBtn.addEventListener("click", () => {
+          const email = emailInput.value.trim();
+          const fullName = fullNameInput.value.trim();
+  
+          if (!email || !fullName) {
+              alert("Please enter both email and full name.");
+              return;
+          }
+  
+          fetch("http://localhost:4000/user/login", {
+              method: "POST",
+              headers: {
+                  "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ email, role: "student", fullName })
+          })
+          .then(response => {
+              if (!response.ok) {
+                  throw new Error("Login failed!");
+              }
+              return response.json();
+          })
+          .then(data => {
+              const token = data.token;
+              const user = data.user;
+  
+              // popup.js (during login handling)
+              chrome.storage.local.set({ 
+                jwtToken: token,
+                name: user.fullName,
+                rollNumber: user.studentId 
+              }, () => {
+                showMainPage();
+              });
+  
+          })
+          .catch(error => {
+              console.error("Login error:", error);
+              alert("Failed to login!");
+          });
+      });
+  
+      // ✅ Handle logout
+      logoutBtn.addEventListener("click", () => {
+          chrome.storage.local.remove(['jwtToken'], () => {
+              console.log("User logged out");
+              showLoginPage();
+          });
+      });
+  
   
     /**
      * Renders a contest item in the UI
@@ -38,9 +183,62 @@ document.addEventListener("DOMContentLoaded", () => {
         </button>
       `;
       
-      div.querySelector('.join-contest-btn').addEventListener('click', () => {
-        roomInput.value = contest.roomCode;
-        document.getElementById('joinForm').scrollIntoView({ behavior: 'smooth' });
+      div.querySelector('.join-contest-btn').addEventListener('click', async () => {
+        const roomId = contest.roomCode;
+
+        if (!roomId) {
+            alert("Please enter a Room ID.");
+            return;
+        }
+
+        try {
+            const token = await getToken();
+            if (!token) {
+                console.error("No token found in chrome storage");
+                return;
+            }
+            const response = await fetch("http://localhost:4000/api/contest/join", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ roomCode: roomId })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                alert(`Failed to join room: ${errorData.message}`);
+                return;
+            }
+
+            const data = await response.json();
+
+            chrome.storage.local.set({ 
+              roomCode: roomId ,
+              activeContest: data.contest.name
+            }, () => {
+              console.log("roomCode saved:", roomId);
+            });
+
+            chrome.runtime.sendMessage({ 
+              type: "join_room", 
+              roomCode: roomId, 
+              name: data.user.fullName,
+              rollNumber: data.user.studentId
+            });
+
+            // roomStatus.textContent = `Joining room: ${roomCode}...`;
+            // chatSection.classList.remove('hidden');
+            // chatMessages.innerHTML = '';
+            // addChatMessage('System', 'Joining room...', 'system');
+
+            alert("Joined room successfully!");
+
+        } catch (error) {
+            console.error("Error joining room:", error);
+            alert("An error occurred. Please try again.");
+        }
       });
       
       return div;
@@ -138,22 +336,51 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
+    const getToken = () => {
+      return new Promise((resolve, reject) => {
+          chrome.storage.local.get("jwtToken", (result) => {
+              if (result.jwtToken) {
+                  resolve(result.jwtToken);
+              } else {
+                  reject("No token found");
+              }
+          });
+      });
+  };
+  
+
     /**
      * Fetches running contests from the server API
      */
     async function fetchRunningContests() {
       try {
-        const response = await fetch('http://localhost:3002/api/running_contests');
-        if (!response.ok) {
-          throw new Error(`Error fetching contests: ${response.status}`);
+        const token = await getToken();  // Await the token retrieval
+        console.log('Token:', token);
+        if (!token) {
+            console.error('No token found in chrome storage');
+            return;
         }
+
+        const response = await fetch('http://localhost:4000/api/contest/active', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`  // Use the retrieved token
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error fetching contests: ${response.status}`);
+        }
+
         const contests = await response.json();
-        updateRunningContests(contests);
-      } catch (error) {
+        console.log('Active contests:', contests);
+        updateRunningContests(contests.activeContests);
+    } catch (error) {
         console.error('Error fetching contests:', error);
         contestsList.innerHTML = '<p class="text-gray-500 text-sm">Error fetching contests</p>';
-      }
     }
+  }
 
     // Initialize states from storage
     chrome.storage.local.get(["activeContest", "roomCode", "name", "rollNumber"], (data) => {
@@ -165,7 +392,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (data.roomCode) {
         currentRoom = data.roomCode;
         roomStatus.textContent = `In room: ${data.roomCode}`;
-        roomInput.value = data.roomCode;
+        // roomInput.value = data.roomCode;
         chatSection.classList.remove('hidden');
         
         // Fetch recent messages if already in a room
@@ -174,12 +401,12 @@ document.addEventListener("DOMContentLoaded", () => {
       
       if (data.name) {
         userName = data.name;
-        nameInput.value = data.name;
+        // nameInput.value = data.name;
       }
       
-      if (data.rollNumber) {
-        rollInput.value = data.rollNumber;
-      }
+      // if (data.rollNumber) {
+      //   rollInput.value = data.rollNumber;
+      // }
     });
   
     // Fetch running contests when the extension is opened
@@ -199,30 +426,30 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   
     // Join room button handler
-    joinRoomButton.addEventListener("click", () => {
-      const roomCode = roomInput.value.trim();
-      const name = nameInput.value.trim();
-      const rollNumber = rollInput.value.trim();
+    // joinRoomButton.addEventListener("click", () => {
+    //   const roomCode = roomInput.value.trim();
+    //   const name = nameInput.value.trim();
+    //   const rollNumber = rollInput.value.trim();
       
-      if (!roomCode || !name || !rollNumber) {
-        alert("Please fill in all fields");
-        return;
-      }
+    //   if (!roomCode || !name || !rollNumber) {
+    //     alert("Please fill in all fields");
+    //     return;
+    //   }
 
-      userName = name;
-      currentRoom = roomCode;
-      chrome.storage.local.set({ roomCode, name, rollNumber });
-      chrome.runtime.sendMessage({ 
-        type: "join_room", 
-        roomCode, 
-        name,
-        rollNumber
-      });
-      roomStatus.textContent = `Joining room: ${roomCode}...`;
-      chatSection.classList.remove('hidden');
-      chatMessages.innerHTML = '';
-      addChatMessage('System', 'Joining room...', 'system');
-    });
+    //   userName = name;
+    //   currentRoom = roomCode;
+    //   chrome.storage.local.set({ roomCode, name, rollNumber });
+    //   chrome.runtime.sendMessage({ 
+    //     type: "join_room", 
+    //     roomCode, 
+    //     name,
+    //     rollNumber
+    //   });
+    //   roomStatus.textContent = `Joining room: ${roomCode}...`;
+    //   chatSection.classList.remove('hidden');
+    //   chatMessages.innerHTML = '';
+    //   addChatMessage('System', 'Joining room...', 'system');
+    // });
 
     // Send message button handler
     sendMessageButton.addEventListener("click", () => {

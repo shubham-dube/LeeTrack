@@ -45,19 +45,19 @@ function checkUrlChange() {
     
     try {
       if(currentUrl.includes('solutions')) {
-        sendEvent('Solution Page Visited', 'solutions_visited');
+        sendEvent('Solution Page Visited', 'solutions_visited', 'critical');
       }
       else if(currentUrl.includes("editorial")) {
-        sendEvent('Editorial Page Visited', 'editorial_visited');
+        sendEvent('Editorial Page Visited', 'editorial_visited', 'critical');
       }
       else if(currentUrl.includes("submissions")) {
-        sendEvent('Submissions Page Visited', 'submissions_visited');
+        sendEvent('Submissions Page Visited', 'submissions_visited', 'critical');
       }
       else if(currentUrl.includes("description")) {
-        sendEvent('Description Page Visited', 'description_visited');
+        sendEvent('Description Page Visited', 'description_visited', 'info');
       }
       else {
-        sendEvent('Page Url Changed', 'page_url_changed');
+        sendEvent('Page Url Changed', 'page_url_changed', 'warning');
       }
     } catch (error) {
       console.error('Error handling URL change:', error);
@@ -91,7 +91,7 @@ function getExtensionData() {
           updateContestNotification();
         }
         
-        console.log(`Extension data loaded: Contest=${contestId}, User=${userName}, Roll=${rollNumber}`);
+        console.log(`Extension data loaded: Contest=${contestId}, User=${userName}, Roll=${rollNumber} RoomId:${contestId}`);
       } else {
         console.log('No contest or user data found in storage');
       }
@@ -178,8 +178,9 @@ function checkLeetCodePage() {
  * Send event to background script
  * @param {string} eventType - Type of event
  * @param {string} category - Event category
+ * @param {string} status - Event status
  */
-function sendEvent(eventType, category = 'user_action') {
+function sendEvent(eventType, category = 'user_action', status = 'info') {
   try {
     if (!chrome.runtime) {
       console.error('Extension context is invalid.');
@@ -202,6 +203,7 @@ function sendEvent(eventType, category = 'user_action') {
         rollNumber: currentRollNumber,
         message: eventType,
         category: category,
+        status: status,
         leetcodeUsername: leetcodeUsername || "Unknown LeetCode User",
         url: window.location.href,
         timestamp: Date.now()
@@ -228,7 +230,7 @@ function setupButtonTracking() {
             if (!element.dataset.tracked) {
               element.dataset.tracked = "true";
               element.addEventListener('click', () => {
-                sendEvent(`Clicked: ${element.textContent || item.description}`, 'button_click');
+                sendEvent(`Clicked: ${element.textContent || item.description}`, 'button_click', 'info');
               });
               console.log(`Tracking added: ${item.description || item.selector}`);
             }
@@ -260,17 +262,17 @@ async function initializeTracking() {
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
           userState.tabActive = false;
-          sendEvent('User left LeetCode tab (switched tab or minimized window)', 'presence');
+          sendEvent('User left LeetCode tab (switched tab or minimized window)', 'presence', 'critical');
         } else {
           userState.tabActive = true;
           userState.lastActive = Date.now();
-          sendEvent('User returned to LeetCode tab', 'presence');
+          sendEvent('User returned to LeetCode tab', 'presence', 'info');
         }
       });
 
       // Track page closure
       window.addEventListener('beforeunload', () => {
-        sendEvent('User closed LeetCode page', 'presence');
+        sendEvent('User closed LeetCode page', 'presence', 'warning');
       });
 
       // Set up button tracking
@@ -310,7 +312,7 @@ const checkSolvedQuestionPresence = () => {
     const element = document.querySelector('div[class="text-body flex flex-none items-center gap-1 py-1.5 text-text-secondary dark:text-text-secondary"]');
     if (element) {
       console.log('Question is Solved!');
-      sendEvent('Question Already Solved', 'solved_question');
+      sendEvent('Question Already Solved', 'solved_question', 'info');
       clearInterval(intervalId);
     }
   } catch (error) {
