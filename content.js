@@ -230,7 +230,8 @@ function setupButtonTracking() {
             if (!element.dataset.tracked) {
               element.dataset.tracked = "true";
               element.addEventListener('click', () => {
-                sendEvent(`Clicked: ${element.textContent || item.description}`, 'button_click', 'info');
+                const status = element.textContent.includes('Hint') || element.textContent.includes('Topics') ? 'warning' : 'info';
+                sendEvent(`Clicked: ${element.textContent || item.description}`, 'button_click', status);
               });
               console.log(`Tracking added: ${item.description || item.selector}`);
             }

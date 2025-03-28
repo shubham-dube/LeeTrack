@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // const joinRoomBtn = document.getElementById("joinRoomBtn");
-    const roomIdInput = document.getElementById("roomIdInput");
+    // const roomIdInput = document.getElementById("roomIdInput");
 
     // joinRoomBtn.addEventListener("click", async () => {
     //     const roomId = roomIdInput.value.trim();
@@ -78,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
       const loginBtn = document.getElementById("loginBtn");
       const emailInput = document.getElementById("email");
-      const fullNameInput = document.getElementById("fullName");
+      const leetrackPassordInput = document.getElementById("leetrackPassword");
   
       // Function to show main page
       function showMainPage() {
@@ -114,19 +114,19 @@ document.addEventListener("DOMContentLoaded", () => {
       // ✅ Handle login
       loginBtn.addEventListener("click", () => {
           const email = emailInput.value.trim();
-          const fullName = fullNameInput.value.trim();
+          const leetrackPassord = leetrackPassordInput.value.trim();
   
-          if (!email || !fullName) {
+          if (!email || !leetrackPassord) {
               alert("Please enter both email and full name.");
               return;
           }
   
-          fetch("http://localhost:4000/user/login", {
+          fetch("http://localhost:4000/user/leeTrackLogin", {
               method: "POST",
               headers: {
                   "Content-Type": "application/json"
               },
-              body: JSON.stringify({ email, role: "student", fullName })
+              body: JSON.stringify({ email, password: leetrackPassord })
           })
           .then(response => {
               if (!response.ok) {
