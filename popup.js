@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
     //             console.error("No token found in chrome storage");
     //             return;
     //         }
-    //         const response = await fetch("http://localhost:4000/api/contest/join", {
+    //         const response = await fetch("http://:4000/api/contest/join", {
     //             method: "POST",
     //             headers: {
     //                 "Content-Type": "application/json",
@@ -121,7 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
               return;
           }
   
-          fetch("http://localhost:4000/user/leeTrackLogin", {
+          fetch("https://league-backend-36in2.ondigitalocean.app/user/leeTrackLogin", {
               method: "POST",
               headers: {
                   "Content-Type": "application/json"
@@ -197,7 +197,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.error("No token found in chrome storage");
                 return;
             }
-            const response = await fetch("http://localhost:4000/api/contest/join", {
+            const response = await fetch("https://league-backend-36in2.ondigitalocean.app/api/contest/join", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -361,7 +361,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const response = await fetch('http://localhost:4000/api/contest/active', {
+        const response = await fetch('https://league-backend-36in2.ondigitalocean.app/api/contest/active', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',

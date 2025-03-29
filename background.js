@@ -16,7 +16,7 @@ const MAX_STORED_MESSAGES = 5;
  */
 function connectToServer() {
   try {
-    ws = new WebSocket('ws://localhost:4000');
+    ws = new WebSocket('wss://league-backend-36in2.ondigitalocean.app');
     
     ws.onopen = () => {
       console.log('WebSocket connection established');
@@ -353,7 +353,7 @@ function fetchRunningContests() {
         return;
       }
 
-      fetch('http://localhost:4000/api/contest/active', {
+      fetch('https://league-backend-36in2.ondigitalocean.app/api/contest/active', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
